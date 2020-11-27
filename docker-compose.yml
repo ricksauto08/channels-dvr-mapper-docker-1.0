@@ -1,0 +1,70 @@
+version: "3.7"
+services:
+  mapper:
+    build:
+      args:
+        user: mapper
+        uid: 1000
+      context: ./channels-dvr-mapper
+      dockerfile: Dockerfile
+    image: channels-mapper
+    container_name: channels-mapper
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./channels-dvr-mapper:/var/www/html
+    networks:
+      - channels-map
+
+  db:
+    image: mysql:5.7
+    container_name: channels-mapper-db
+    volumes:
+      - channels_db_data:/var/lib/mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: abcdefg
+      MYSQL_DATABASE: laravel
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: '1234567'
+    networks:
+      - channels-map
+
+  channels-frontend:
+    image: fancybits/channels-dvr:tve
+    container_name: channels-frontend
+    ports:
+      - "8089:8089"
+    networks:
+      - channels
+    restart: unless-stopped
+    environment:
+      - TZ=America/Los_Angeles
+    volumes:
+      - ./channels-frontend/config:/channels-dvr
+      - ./channels-frontend/recordings:/shares/DVR
+
+  channels-backend:
+    image: fancybits/channels-dvr:tve
+    container_name: channels-backend
+    networks:
+      - channels
+    ports:
+      - "8090:8089"
+    restart: unless-stopped
+    environment:
+      - TZ=America/Los_Angeles
+    volumes:
+      - ./channels-backend/config:/channels-dvr
+      - ./channels-backend/recordings:/shares/DVR
+
+networks:
+  channels-map:
+    driver: bridge
+  channels:
+    driver: bridge
+
+volumes:
+  channels_db_data:
